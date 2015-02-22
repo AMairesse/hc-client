@@ -1,0 +1,3 @@
+- reading on server for sensors and heaters should use the hostname for filtering or filter inside the local program
+- type and component_type is confusing ==> should be clearly separated between 'class' (ZigBee, local) and 'type' (heater, sensor, w1)
+

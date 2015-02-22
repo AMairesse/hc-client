@@ -1,0 +1,53 @@
+================
+hc-client v0.8
+================
+
+ * Auto-detection rework
+ * Filtering w1 sensor and zigbee ones during auto-detection
+
+================
+hc-client v0.7
+================
+
+ * Python 3 rework
+ * Storing zigbee address of components
+ * Ability to work with (zigbee) 'end device' mode
+
+================
+hc-client v0.6
+================
+
+ * Major upgrade to be able to set ZygBee heaters
+ * Require home_automation v0.1 or later
+
+================
+hc-client v0.5
+================
+
+ * Setuptools install scripts
+
+================
+hc-client v0.4
+================
+
+ * ZigBee support (work in progress)
+
+================
+hc-client v0.3
+================
+
+ * Code refactoring
+
+================
+hc-client v0.2
+================
+
+ * Bugs correction (GPIO for heaters)
+ * Added clean exit
+ * Added gpio_mode support for heaters
+
+================
+hc-client v0.1
+================
+
+ * First release

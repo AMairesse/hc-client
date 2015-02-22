@@ -1,0 +1,42 @@
+2014-10-17  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Auto-detection rework
+        * Now filtering correctly w1 sensor and zigbee ones
+
+2014-10-01  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Python 3 rework
+        * Now storing zigbee address of components, require home_automation v0.3 because of API evolution
+        * Now working with end devices zigbee (detection, registration, temperature logging)
+
+2014-07-20  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Major upgrade to be able to set ZygBee heaters
+        * Require home_automation v0.1 because of API evolution
+        * Import Rpi module only if needed
+
+2014-02-08  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Configured setuptools for easy installation
+
+2014-01-20  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Corrected threading : removed unwanted shared data
+
+2014-01-12  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Added first ZigBee support (to be continued)
+
+2014-01-11  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Refactoring and class creation (Components, Heaters, Sensors, etc.)
+
+2013-12-28  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * Corrected some bugs with GPIO
+        * Added clean exit (even in case of a bug) to unset every GPIO
+        * Added gpio_mode support for heaters
+
+2013-12-27  Antoine Mairesse  <antoine.mairesse@free.fr>
+
+        * first release
