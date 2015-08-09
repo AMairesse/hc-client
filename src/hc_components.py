@@ -8,6 +8,7 @@ import threading
 
 # statics
 ZIGBEE_TYPE = 'ZigBee'
+ENOCEAN_TYPE = 'enOcean'
 W1_TYPE = "Default"
 DEFAULT_TIMEZONE = 'UTC'
 HEATER_COMPONENT_TYPE = 'Heater'
@@ -20,6 +21,10 @@ class Components(threading.Thread):
 
     def set_zb_link(self, zb_link):
         self.zb_link = zb_link
+        return
+
+    def set_enOcean_link(self, enOcean_link):
+        self.enOcean_link = enOcean_link
         return
 
     def __init__(self):
@@ -212,7 +217,7 @@ class Components(threading.Thread):
         return
 
     # This is a call back function for the ZigBee network incoming messages
-    def callback(self, data):
+    def callback_ZB(self, data):
         # **** Automatic sample
         if (data['id'] == 'rx_io_data_long_addr'):
             # If we're not initialized yet, do nothing
@@ -310,3 +315,47 @@ class Components(threading.Thread):
             # even if we're not initialized yet
             self.zb_link.packets.put(data, block=False)
         return
+    
+    # This is a call back function for the ZigBee network incoming messages
+    def callback_enOcean(self, data):
+        try:
+            from enocean.protocol.packet import Packet
+            from enocean.protocol.constants import PACKET, RORG
+        except :
+            print ("enOcean support is not available")
+            raise
+        
+        print("enOcean msg received")
+        print(data)
+        
+        # **** Automatic Sample
+        if ((data.type == PACKET.RADIO) and (data.rorg == RORG.BS4)):
+            # Check if we know the sender
+            component = self.find_by_addr(data.sender)
+            if (component == None):
+                # New component, it this a learn sample ?
+                if (data.learn == True):
+                    new_enOcean_sensor = self.create_component(SENSOR_COMPONENT_TYPE, name = None,
+                                                               type = ENOCEAN_TYPE, addr = data.sender,
+                                                               enOcean_link = self.enOcean_link, rorg=data.rorg,
+                                                               rorg_func=data.rorg_func, rorg_type = data.rorg_type)
+                    self.add_component(new_enOcean_sensor)
+                    # Add link to server
+                    #new_enOcean_sensor.add_config_server(self.client_hostname, self.server_host,
+                    #                                     self.server_user, self.server_password)
+            else:
+                try:
+                    # Convert EEP
+                    for k in data.parse_eep(component.rorg_func, component.rorg_type):
+                        parsed_data = data.parsed[k]
+                        temperature = parsed_data[u'value']
+                        print("enOcean temperature read : ", temperature)
+                    # Update the value
+                    component.last_value = temperature
+                    component.last_value_dt = datetime.datetime.now(component.timezone)
+                    # Send it to the server
+                    #component.upload()
+                except:
+                    print ("Error processing a sample (data : ", data, ")")
+        return
+
