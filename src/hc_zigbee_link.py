@@ -1,4 +1,6 @@
 import serial
+import time
+
 try:
     import queue
 except ImportError:
@@ -33,3 +35,38 @@ class Zigbee_link(dict):
         self.zb.halt()
         self.ser.close()
         return
+
+    # send a command
+    def send(self, addr, command, parameter, frame_id):
+        if (parameter == None):
+            self.zb.send('remote_at', command=command, dest_addr_long = addr, frame_id = frame_id)
+        else:
+            self.zb.send('remote_at', command=command, parameter=parameter, dest_addr_long = addr, frame_id = frame_id)
+        nb_try = 4
+        # Read responses
+        while (nb_try > 0):
+            if (self.packets.qsize() > 0):
+                data = self.packets.get_nowait()
+                # do not care of other packets
+                if ((data['command'] != command) or (data['frame_id'] != frame_id)):
+                    continue
+                if (data['status'] != b'\x00'):
+                    return False
+                else:
+                    return data
+            else:
+                time.sleep(1)
+                nb_try = nb_try - 1
+        return False
+
+    # Broadcast command to the whole zigbee network
+    def broadcast(self, command, frame_id):
+        self.zb.send('at', command=command, frame_id = frame_id)
+        return
+
+    # Send a Node Identifier (NI) message to a zigbee
+    # in order to register him
+    def identify(self, addr):
+        self.zb.send(addr, b'NI', None, b'8')
+        return
+

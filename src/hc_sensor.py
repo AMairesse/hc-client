@@ -1,6 +1,6 @@
 import dateutil.parser
 import requests, json
-from hc_zigbee import Zigbee
+from hc_component import Component
 import glob, os
 import base64
 
@@ -9,7 +9,7 @@ SENSORS_PATH = '/api/sensors'
 TEMPERATURES_PATH = '/api/temperatures'
 DEFAULT_ROOM = 'Unknown'
 
-class Sensor(Zigbee):
+class Sensor(Component):
     # Public attribute
     offset = 0.0
     room_name = DEFAULT_ROOM
@@ -20,8 +20,8 @@ class Sensor(Zigbee):
         return
     
     # Register a new sensor on the server
-    def register(self):
-        payload = {'hostname': self.client_hostname, 'name': self.name.decode('utf_8'), 'address': base64.b64encode(self.addr), 'type': self.type, 'freq': self.freq, 'room_name': self.room_name, 'status' : self.status, 'gpio': self.gpio}
+    def register(self, payload = {}):
+        payload.update({'hostname': self.client_hostname, 'name': self.name.decode('utf_8'), 'type': self.type, 'freq': self.freq, 'room_name': self.room_name, 'status' : self.status})
         requested_url = self.server_host + SENSORS_PATH + '/'
         if (self.server_user == None):
             r = requests.post(requested_url, data=payload)
@@ -36,33 +36,6 @@ class Sensor(Zigbee):
         super(Sensor, self).register()
         return
 
-    # Convert the value from the zigbee to a temperature in celsius
-    def convert_temperature(self, value):
-        voltage = (value * 1200) / 1023
-        temperature = round((voltage - 500) / 10.0, 3)
-        return temperature
-
-    # Read a sensor value and update data within the object
-    def update(self):
-        if (self.zb_link != None):
-            # Send a immediate sample (IS) message to this one
-            response = self.send(b'IS', None, b'4')
-            # Read responses
-            if (response == False):
-                return False
-            else:
-                try:
-                    parameters = response['parameter']
-                    gpio_str = 'adc-' + str(self.gpio)
-                    value = parameters[0][gpio_str]
-                    temperature = self.convert_temperature(value)
-                except:
-                    return False
-            # Update the value
-            self.last_value = temperature
-        # Component class update's method
-        return super(Sensor, self).update()
-
     # Update specific data
     def update_config_local(self, data):
         # Those data are optionnal
@@ -72,7 +45,6 @@ class Sensor(Zigbee):
         except:
             self.last_value = None
             self.last_value_dt = None
-        super(Sensor, self).update_config_local(data)
         return
 
     # Upload last data to a webserver

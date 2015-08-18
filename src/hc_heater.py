@@ -1,50 +1,27 @@
 import dateutil.parser
 import requests, json
-from hc_zigbee import Zigbee
-import base64
+from hc_component import Component
 
 # statics
 DEFAULT_MODE = "Low"
 DEFAULT_HYSTERESIS = 0
 ACTIVE_LOW = "Low"
 ACTIVE_HIGH = "High"
-TYPE_ZIGBEE = "ZigBee"
-TYPE_GPIO = "GPIO"
 HEATERS_PATH = '/api/heaters'
 HEATERS_HISTORY_PATH = '/api/heaters_history'
 
-class Heater(Zigbee):
+class Heater(Component):
     # Public attribute
     mode = None
 
     def initialize(self):
         # Initialize heater's
-        if ((self.type == TYPE_GPIO) and (self.gpio != None)):
-            try:
-                import RPi.GPIO as GPIO
-            except :
-                self.status = False
-                return False
-            if (self.mode == ACTIVE_LOW):
-                # Heater is on 'active low' which mean than GND wil set it 'on'
-                # We need to set it to 'True' for starting
-                GPIO.setup(self.gpio, GPIO.OUT, initial=True)
-            elif (self.mode == ACTIVE_HIGH):
-                # Heater is on 'active high' so we set it to False
-                GPIO.setup(self.gpio, GPIO.OUT, initial=False)
-            else:
-                print ("WARNING - Heater : ", self.name, " is of an unknown mode : ", self.mode)
-        elif ((self.type == TYPE_ZIGBEE) and (self.gpio != None)):
-            # Default to off
-            self.set_heater(False)
-        else:
-            # Ultimatly deactivate the heater
-            self.status = False
+        self.set_heater(False)
         return True
 
     # Register a new heater on the server
-    def register(self):
-        payload = {'hostname': self.client_hostname, 'type': self.type, 'mode': DEFAULT_MODE, 'name': self.name.decode('utf_8'), 'address': base64.b64encode(self.addr), 'freq': self.freq, 'hysteresis': DEFAULT_HYSTERESIS, 'status' : self.status}
+    def register(self, payload = {}):
+        payload.update({'hostname': self.client_hostname, 'type': self.type, 'mode': DEFAULT_MODE, 'name': self.name.decode('utf_8'), 'freq': self.freq, 'hysteresis': DEFAULT_HYSTERESIS, 'status' : self.status})
         requested_url = self.server_host + HEATERS_PATH + '/'
         if (self.server_user == None):
             r = requests.post(requested_url, data=payload)
@@ -83,34 +60,7 @@ class Heater(Zigbee):
 
     # Set heating system to on or off
     def set_heater(self, state):
-        if ((self.type == TYPE_GPIO) and (self.gpio != None)):
-            if (self.mode == ACTIVE_LOW):
-                # Heater is on 'active low' which mean than GND wil set it 'on'
-                # We need to set it to "not(state)"
-                GPIO.output(self.gpio, not(state))
-            elif (self.mode == ACTIVE_HIGH):
-                # Heater is on 'active high' so we set directly to 'state'
-                GPIO.output(self.gpio, state)
-            else:
-                print ("WARNING - Heater : ", self.name, " is of an unknown mode : ", self.mode)
-        elif ((self.type == TYPE_ZIGBEE) and (self.zb_link.zb != None) and (self.gpio != None)):
-            if ((self.mode == ACTIVE_LOW) and not(state)):
-                # Heater is on 'active low' which mean than GND wil set it 'on'
-                # Wanted state is OFF so we send a \x05 parameter "Digital output, high"
-                param = b'\x05'
-            elif ((self.mode == ACTIVE_HIGH) and state):
-                # Heater is on 'active high' which mean than GND wil set it 'off'
-                # Wanted state is ON so we send a \x05 parameter "Digital output, high"
-                param = b'\x05'
-            else:
-                # In all other cases we send a \x04 parameter "Digital output, low"
-                param = b'\x04'
-            # Send a Dx config ('x' being the used gpio) message with the parameter
-            gpio_str = 'D' + str(self.gpio)
-            response = self.send(gpio_str.encode("utf_8"), param, b'5')
-            # Read responses
-            if (response == False):
-                return False
+        # This method must be overriden is sub-class
         return
 
     # Update specific data
@@ -128,7 +78,6 @@ class Heater(Zigbee):
         except:
             self.last_value = None
             self.last_value_dt = None
-        super(Heater, self).update_config_local(data)
         return
 
     # Upload last data to a webserver

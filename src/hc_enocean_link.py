@@ -8,12 +8,14 @@ class enOcean_link(dict):
         # Initialize parent class
         super(enOcean_link, self).__init__()
 
+        # Set debug mode if needed
+        # from enocean.consolelogger import init_logging
+        # init_logging()
+
         # Set port
         try:
             c = SerialCommunicator(port=port, callback=callback)
             c.start()
-            #p = Packet(PACKET.COMMON_COMMAND, [0x08])
-            #c.send(p)
         except:
             print ("Error opening serial port (", port, ")")
             raise
