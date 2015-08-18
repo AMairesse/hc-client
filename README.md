@@ -48,5 +48,6 @@ Software :
   * python-xbee 2.1
     Note : python-xbee v2.1 raise an error for packet size and this always occur when using an autonomous sensor.
            Modifying file /xbee/base.py line 277 and remplacing "raise ValueError" by "print" is recommended for stability
+  * python-enocean (git master after Aug 10 2015 or version superior to 0.21 if available)
   * (optionnal) Rpi
   * (optionnal if older python) json
