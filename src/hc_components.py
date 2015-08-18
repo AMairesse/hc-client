@@ -1,18 +1,22 @@
-from hc_heater import Heater, HEATERS_PATH
-from hc_sensor import Sensor, SENSORS_PATH
-from hc_w1 import W1_sensor, W1_TYPE, W1_BUS_DIRECTORY, W1_BUS_FILE
+from hc_zigbee_heater import Zigbee_heater
+from hc_zigbee_sensor import Zigbee_sensor
+from hc_w1_sensor import W1_sensor, W1_BUS_DIRECTORY, W1_BUS_FILE
+from hc_enocean_sensor import enOcean_sensor
+from hc_heater import HEATERS_PATH
+from hc_sensor import SENSORS_PATH
 import glob, os
 import requests, json
 import pytz, time, datetime
 import threading
 
 # statics
+W1_TYPE = 'W1'
 ZIGBEE_TYPE = 'ZigBee'
-W1_TYPE = "Default"
+ENOCEAN_TYPE = 'enOcean'
+DEFAULT_ENOCEAN_NAME = 'Name has to be set'
 DEFAULT_TIMEZONE = 'UTC'
-HEATER_COMPONENT_TYPE = 'Heater'
-SENSOR_COMPONENT_TYPE = 'Sensor'
-W1_COMPONENT_TYPE = 'W1 Sensor'
+HEATER_COMPONENT = 'Heater'
+SENSOR_COMPONENT = 'Sensor'
 
 
 class Components(threading.Thread):
@@ -20,6 +24,10 @@ class Components(threading.Thread):
 
     def set_zb_link(self, zb_link):
         self.zb_link = zb_link
+        return
+
+    def set_enOcean_link(self, enOcean_link):
+        self.enOcean_link = enOcean_link
         return
 
     def __init__(self):
@@ -39,16 +47,19 @@ class Components(threading.Thread):
             del component
         return
 
-    def create_component(self, component_type, **kwargs):
-        if (component_type == HEATER_COMPONENT_TYPE):
-            component = Heater(**kwargs)
-            component.component_type = HEATER_COMPONENT_TYPE
-        elif (component_type == SENSOR_COMPONENT_TYPE):
-            component = Sensor(**kwargs)
-            component.component_type = SENSOR_COMPONENT_TYPE
-        elif (component_type == W1_COMPONENT_TYPE):
-            component = W1_sensor(**kwargs)
-            component.component_type = W1_COMPONENT_TYPE
+    def create_component(self, type, component_type, **kwargs):
+        if (type == ZIGBEE_TYPE) and (component_type == HEATER_COMPONENT):
+            component = Zigbee_heater(type = type, zb_link = self.zb_link, **kwargs)
+            component.component_type = HEATER_COMPONENT
+        elif (type == ZIGBEE_TYPE) and (component_type == SENSOR_COMPONENT):
+            component = Zigbee_sensor(type = type, zb_link = self.zb_link, **kwargs)
+            component.component_type = SENSOR_COMPONENT
+        elif (type == W1_TYPE) and (component_type == SENSOR_COMPONENT):
+            component = W1_sensor(type = type, **kwargs)
+            component.component_type = SENSOR_COMPONENT
+        elif (type == ENOCEAN_TYPE) and (component_type == SENSOR_COMPONENT):
+            component = enOcean_sensor(type = type, **kwargs)
+            component.component_type = SENSOR_COMPONENT
         else:
             return False
         return component
@@ -83,16 +94,16 @@ class Components(threading.Thread):
     def detect(self):
         # Detect Zigbee components in the network
         # Send a Node Discover (ND) message to broadcast
-        self.zb_link.zb.send('at', command=b'ND', frame_id = b'1')
+        self.zb_link.broadcast(b'ND', b'1')
         # Detect W1 components on the host
         devicelist = glob.glob(W1_BUS_DIRECTORY + '28*')
         for device in devicelist:
             devicefile = device + W1_BUS_FILE
             if os.path.exists(devicefile):
                 [_, component_name] = device.rsplit('/', 1)
-                component = self.find_by_name_and_type(component_name, W1_COMPONENT_TYPE, W1_TYPE)
+                component = self.find_by_name_and_type(component_name, SENSOR_COMPONENT, W1_TYPE)
                 if (component == None):
-                    new_w1_sensor = self.create_component(W1_COMPONENT_TYPE, name = component_name, type = W1_TYPE)
+                    new_w1_sensor = self.create_component(W1_TYPE, SENSOR_COMPONENT, name = component_name)
                     self.add_component(new_w1_sensor)
                     new_w1_sensor.add_config_server(self.client_hostname, self.server_host, self.server_user, self.server_password)
                     new_w1_sensor.register()
@@ -101,9 +112,10 @@ class Components(threading.Thread):
 
     def initialize(self):
         # Configure all components, add config server
-        self.update_config_by_type(ZIGBEE_TYPE, HEATER_COMPONENT_TYPE, HEATERS_PATH)
-        self.update_config_by_type(ZIGBEE_TYPE, SENSOR_COMPONENT_TYPE, SENSORS_PATH)
-        self.update_config_by_type(W1_TYPE, W1_COMPONENT_TYPE, SENSORS_PATH)
+        self.update_config_by_type(ZIGBEE_TYPE, HEATER_COMPONENT, HEATERS_PATH)
+        self.update_config_by_type(ZIGBEE_TYPE, SENSOR_COMPONENT, SENSORS_PATH)
+        self.update_config_by_type(W1_TYPE, SENSOR_COMPONENT, SENSORS_PATH)
+        self.update_config_by_type(ENOCEAN_TYPE, SENSOR_COMPONENT, SENSORS_PATH)
         self.initialized = True
         # Detect components availables
         self.detect()
@@ -132,14 +144,14 @@ class Components(threading.Thread):
         component = next((x for x in self.components_list if ((x.name == component_name) and (x.component_type == component_type) and (x.type == type))), None)
         return component
     
-    # Function to find by addr
+    # Function to find by addr (zigbee and enOcean only)
     def find_by_addr(self, addr):
-        component = next((x for x in self.components_list if (x.addr == addr)), None)
+        component = next((x for x in self.components_list if (((x.type == ZIGBEE_TYPE) or (x.type == ENOCEAN_TYPE)) and (x.addr == addr))), None)
         return component
     
-    # Function to find by addr and gpio
+    # Function to find by addr and gpio (zigbee only)
     def find_by_addr_and_gpio(self, addr, gpio):
-        component = next((x for x in self.components_list if ((x.addr == addr) and (x.gpio == gpio))), None)
+        component = next((x for x in self.components_list if ((x.type == ZIGBEE_TYPE) and (x.addr == addr) and (x.gpio == gpio))), None)
         return component
     
     # Function to sort by refresh_dt
@@ -163,7 +175,7 @@ class Components(threading.Thread):
             return
         # Process each result
         for i in range(nb_result):
-            # Check if the zigbee is already known
+            # Check if the component is already known
             component_name = str(results[i][u'name']).encode('utf_8')
             type = str(results[i][u'type'])
             if (type != component_class):
@@ -173,7 +185,7 @@ class Components(threading.Thread):
             component = self.find_by_name_and_type(component_name, component_type, type)
             if (component == None):
                 # New component, let's create it in the list
-                component = self.create_component(component_type, name = component_name, type = results[i][u'type'], zb_link = self.zb_link)
+                component = self.create_component(component_class, component_type, name = component_name)
                 self.add_component(component)
                 # Add link to server
                 component.add_config_server(self.client_hostname, self.server_host, self.server_user, self.server_password)
@@ -212,7 +224,7 @@ class Components(threading.Thread):
         return
 
     # This is a call back function for the ZigBee network incoming messages
-    def callback(self, data):
+    def callback_ZB(self, data):
         # **** Automatic sample
         if (data['id'] == 'rx_io_data_long_addr'):
             # If we're not initialized yet, do nothing
@@ -228,16 +240,16 @@ class Components(threading.Thread):
                     component = self.find_by_addr_and_gpio(data['source_addr_long'], gpio)
                     if (component == None):
                         # New component, let's create it in the list
-                        new_zb_sensor = self.create_component(SENSOR_COMPONENT_TYPE, name = None, type = ZIGBEE_TYPE, addr = data['source_addr_long'], zb_link = self.zb_link, gpio = gpio)
+                        new_zb_sensor = self.create_component(ZIGBEE_TYPE, SENSOR_COMPONENT, name = None, addr = data['source_addr_long'], gpio = gpio)
                         self.add_component(new_zb_sensor)
                         # Add link to server
                         new_zb_sensor.add_config_server(self.client_hostname, self.server_host, self.server_user, self.server_password)
-                        # Ask him for his name : send a Node Identifier (NI) message
-                        new_zb_sensor.send(b'NI', None, b'8')
+                        # Ask him for his name
+                        self.zb_link.identify(new_zb_sensor.addr)
                     else:
                         if (component.url == None):
-                            # The component is not registered yet, ask him for his name : send a Node Identifier (NI) message
-                            component.send(b'NI', None, b'8')
+                            # The component is not registered yet, ask him for his name
+                            self.zb_link.identify(component.addr)
                         elif (component.status == False):
                             # The component is desactivated, we should not save the data
                             return
@@ -266,9 +278,9 @@ class Components(threading.Thread):
             # Update the name
             if (component == None):
                 # Not found ! Let's add it (sensor and heater)
-                new_zb_sensor = self.create_component(SENSOR_COMPONENT_TYPE, name = zb_id, type = ZIGBEE_TYPE, addr = zb_addr, zb_link = self.zb_link)
+                new_zb_sensor = self.create_component(ZIGBEE_TYPE, SENSOR_COMPONENT, name = zb_id, addr = zb_addr)
                 self.add_component(new_zb_sensor)
-                new_zb_heater = self.create_component(HEATER_COMPONENT_TYPE, name = zb_id, type = ZIGBEE_TYPE, addr = zb_addr, zb_link = self.zb_link)
+                new_zb_heater = self.create_component(ZIGBEE_TYPE, HEATER_COMPONENT, name = zb_id, addr = zb_addr)
                 self.add_component(new_zb_heater)
                 # Add link to server
                 new_zb_sensor.add_config_server(self.client_hostname, self.server_host, self.server_user, self.server_password)
@@ -295,7 +307,7 @@ class Components(threading.Thread):
             # Update the name
             if (component == None):
                 # Not found ! Let's add it
-                new_zb_sensor = self.create_component(SENSOR_COMPONENT_TYPE, name = zb_id, type = ZIGBEE_TYPE, addr = zb_addr, zb_link = self.zb_link)
+                new_zb_sensor = self.create_component(ZIGBEE_TYPE, SENSOR_COMPONENT, name = zb_id, addr = zb_addr)
                 self.add_component(new_zb_sensor)
                 # Add link to server
                 new_zb_sensor.add_config_server(self.client_hostname, self.server_host, self.server_user, self.server_password)
@@ -310,3 +322,48 @@ class Components(threading.Thread):
             # even if we're not initialized yet
             self.zb_link.packets.put(data, block=False)
         return
+    
+    # This is a call back function for the ZigBee network incoming messages
+    def callback_enOcean(self, data):
+        try:
+            from enocean.protocol.packet import Packet
+            from enocean.protocol.constants import PACKET, RORG
+        except :
+            print ("enOcean support is not available")
+            raise
+        
+        # **** Automatic Sample
+        if ((data.type == PACKET.RADIO) and (data.rorg == RORG.BS4)):
+            # Check if we know the sender
+            component = self.find_by_addr(data.sender)
+            
+            if component is None:
+                # New component, is this a learn sample ?
+                if data.learn is True:
+                    new_enOcean_sensor = self.create_component(ENOCEAN_TYPE, SENSOR_COMPONENT,
+                                                               name = DEFAULT_ENOCEAN_NAME, addr = data.sender,
+                                                               enOcean_link = self.enOcean_link, rorg=data.rorg,
+                                                               rorg_func=data.rorg_func, rorg_type = data.rorg_type)
+                    self.add_component(new_enOcean_sensor)
+                    # Add link to server
+                    new_enOcean_sensor.add_config_server(self.client_hostname, self.server_host,
+                                                         self.server_user, self.server_password)
+                    # Register it to the server
+                    new_enOcean_sensor.register()
+            else:
+                # If component is active then store the temperature
+                if component.status is True:
+                    try:
+                        # Convert EEP
+                        for k in data.parse_eep(component.rorg_func, component.rorg_type):
+                            parsed_data = data.parsed[k]
+                            temperature = parsed_data[u'value']
+                        # Update the value
+                        component.last_value = round(temperature,3)
+                        component.last_value_dt = datetime.datetime.now(component.timezone)
+                        # Send it to the server
+                        component.upload()
+                    except:
+                        print ("Error processing a sample (data : ", data, ")")
+        return
+

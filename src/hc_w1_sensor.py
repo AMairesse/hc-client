@@ -2,7 +2,6 @@ from hc_sensor import Sensor
 import glob, os
 
 # statics
-W1_TYPE = "Default"
 W1_BUS_DIRECTORY = "/sys/bus/w1/devices/"
 W1_BUS_FILE = "/w1_slave"
 
@@ -20,11 +19,7 @@ class W1_sensor(Sensor):
     
     # Set device file for a sensor
     def set_devicefile(self):
-        if (self.type == W1_TYPE):
-            self.devicefile = W1_BUS_DIRECTORY + self.name  + W1_BUS_FILE
-        else:
-            print ("WARNING - Sensor : ", self.name, " is of an unknown type : ", self.type)
-            self.devicefile = False
+        self.devicefile = W1_BUS_DIRECTORY + self.name  + W1_BUS_FILE
         return
     
     # Read a sensor value and update data within the object
