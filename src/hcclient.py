@@ -3,18 +3,22 @@
 try:
     import configparser
 except ImportError:
-    import ConfigParser as configparser #for 2.x
-import os, signal, socket, time
+    import ConfigParser as configparser  # for 2.x
+import os
+import signal
+import socket
+import time
 from hc_zigbee_link import Zigbee_link
 from hc_enocean_link import enOcean_link
 from hc_components import Components
 
 
 # statics
-INI_FILE= "/etc/hc-client.conf"
-DEFAULT_HOST= 'http://127.0.0.1:8000/hc'
-DEFAULT_USER= ''
-DEFAULT_PASSWORD= ''
+INI_FILE = "/etc/hc-client.conf"
+DEFAULT_HOST = 'http://127.0.0.1:8000/hc'
+DEFAULT_USER = ''
+DEFAULT_PASSWORD = ''
+
 
 # on interrupt
 def on_exit(sig, func=None):
@@ -28,11 +32,12 @@ def on_exit(sig, func=None):
         del zb_link
     exit()
 
+
 # Load config file
 def load_config():
     ini_file = os.path.expanduser(INI_FILE)
     config = configparser.ConfigParser()
-    if (os.path.isfile(ini_file)):
+    if os.path.isfile(ini_file):
         config.read(ini_file)
         server_credential = {}
         try:
@@ -46,7 +51,7 @@ def load_config():
             return False
         try:
             client_hostname = config.get('Client', 'hostname')
-        except :
+        except:
             client_hostname = socket.gethostname()
     else:
         # Print an error message
@@ -57,7 +62,7 @@ def load_config():
 # -----------------------------------
 # main
 # -----------------------------------
-#def main():
+# def main():
 try:
 
     # handle SIGTERM signal
@@ -65,34 +70,30 @@ try:
 
     # load config file
     config = load_config()
-    if (config == False):
+    if config is False:
         # Print an error message and exit
-        print ("Config file error (", INI_FILE, ")")
+        print("Config file error (", INI_FILE, ")")
         exit()
     else:
         [server_credential, client_hostname, zigbee_serial_port, enOcean_serial_port] = config
 
     # Create a components container
     components = Components()
-    print("Components created")
 
     # Create a ZigBee interface
     zb_link = Zigbee_link(zigbee_serial_port, 9600, components.callback_ZB)
-    print("ZB created")
     enOcean_link = enOcean_link(enOcean_serial_port, components.callback_enOcean)
-    print("enOcean created")
 
     # Load components
     components.set_zb_link(zb_link)
     components.set_enOcean_link(enOcean_link)
-    components.add_config_server(client_hostname, server_credential['host'], server_credential['user'], server_credential['password'])
+    components.add_config_server(client_hostname, server_credential['host'],
+                                 server_credential['user'], server_credential['password'])
     components.initialize()
-    print("Initialize done")
     components.start()
-    print("Process started")
 
     # main loop
-    while (components.isAlive()):
+    while components.isAlive():
         time.sleep(1)
 except:
     # nothing to do but raise the exception
@@ -101,5 +102,5 @@ finally:
     # Here we are sure to unset every GPIO set during program execution
     on_exit(None)
 
-#if __name__ == "__main__":
-#    main()
+# if __name__ == "__main__":
+#     main()

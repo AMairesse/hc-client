@@ -130,7 +130,6 @@ class Components(threading.Thread):
             # Only initialize components with a positive status
             if component.status is True:
                 component.initialize()
-        print(self.components_list)
         return
 
     # Add a server hosting config
@@ -172,7 +171,7 @@ class Components(threading.Thread):
         return item.refresh_dt()
 
     # Read component from config server
-    def update_config_by_type(self, component_class, component_type, PATH):
+    def update_config_by_type(self, looking_class, looking_type, PATH):
         # Request known components for this host from the server
         requested_url = self.server_host + PATH + '/'
         try:
@@ -190,16 +189,16 @@ class Components(threading.Thread):
         # Process each result
         for i in range(nb_result):
             # Check if the component is already known
-            component_name = str(results[i]['name']).encode('utf_8')
-            component_type = str(results[i]['type'])
-            if component_type is not component_class:
+            component_name = str(results[i]['name'])
+            component_class = str(results[i]['type'])
+            if component_class != looking_class:
                 # Listed component is not of the type/class we are looking for
                 # go on with the next one
                 continue
-            component = self.find_by_name_and_type(component_name, component_type, component_type)
+            component = self.find_by_name_and_type(component_name, looking_type, component_class)
             if component is None:
                 # New component, let's create it in the list
-                component = self.create_component(component_class, component_type, name=component_name)
+                component = self.create_component(component_class, looking_type, name=component_name)
                 self.add_component(component)
                 # Add link to server
                 component.add_config_server(self.client_hostname, self.server_host,
@@ -240,7 +239,6 @@ class Components(threading.Thread):
 
     # This is a call back function for the ZigBee network incoming messages
     def callback_ZB(self, data):
-        print("incoming ZB data")
         # **** Automatic sample
         if data['id'] == 'rx_io_data_long_addr':
             # If we're not initialized yet, do nothing

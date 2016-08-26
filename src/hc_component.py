@@ -57,7 +57,6 @@ class Component(dict):
         return True
 
     # Update the component
-    def update(self, E=None, **F):
-        super(Component, self).update(E, **F)
+    def update(self):
         self.last_value_dt = datetime.datetime.now(self.timezone)
         return True
