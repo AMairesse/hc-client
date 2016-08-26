@@ -1,5 +1,6 @@
 from enocean.communicators.serialcommunicator import SerialCommunicator
 
+
 class enOcean_link(dict):
     # Public attribute
     packets = None
@@ -14,15 +15,15 @@ class enOcean_link(dict):
 
         # Set port
         try:
-            c = SerialCommunicator(port=port, callback=callback)
-            c.start()
+            self.c = SerialCommunicator(port=port, callback=callback)
+            self.c.start()
         except:
-            print ("Error opening serial port (", port, ")")
+            print("Error opening serial port (", port, ")")
             raise
 
         return
     
     def stop(self):
-        if c.is_alive():
-            c.stop()
+        if self.c.is_alive():
+            self.c.stop()
         return

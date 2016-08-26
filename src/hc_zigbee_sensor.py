@@ -1,6 +1,6 @@
 from hc_sensor import Sensor
-import time
 import base64
+
 
 class Zigbee_sensor(Sensor):
     # Public attribute
@@ -13,7 +13,7 @@ class Zigbee_sensor(Sensor):
         super(Zigbee_sensor, self).__init__(**kwargs)
         return
 
-    def register(self, payload = {}):
+    def register(self, payload={}):
         payload.update({'address': base64.b64encode(self.addr), 'gpio': self.gpio})
         super(Zigbee_sensor, self).register(payload)
         return
@@ -37,14 +37,13 @@ class Zigbee_sensor(Sensor):
         temperature = round((voltage - 500) / 10.0, 3)
         return temperature
 
-
     # Read a sensor value and update data within the object
     def update(self):
-        if (self.zb_link != None):
+        if self.zb_link is not None:
             # Send a immediate sample (IS) message to this one
             response = self.zb_link.send(self.addr, b'IS', None, b'4')
             # Read responses
-            if (response == False):
+            if response is False:
                 return False
             else:
                 try:

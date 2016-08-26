@@ -1,13 +1,13 @@
 import dateutil.parser
-import requests, json
+import requests
+import json
 from hc_component import Component
-import glob, os
-import base64
 
 # statics
 SENSORS_PATH = '/api/sensors'
 TEMPERATURES_PATH = '/api/temperatures'
 DEFAULT_ROOM = 'Unknown'
+
 
 class Sensor(Component):
     # Public attribute
@@ -17,19 +17,23 @@ class Sensor(Component):
     # Init method uses dict so we can pass any field for creation
     def __init__(self, **kwargs):
         super(Sensor, self).__init__(**kwargs)
+        self.last_value = None
+        self.last_value_dt = None
+        self.url = None
         return
     
     # Register a new sensor on the server
-    def register(self, payload = {}):
-        payload.update({'hostname': self.client_hostname, 'name': self.name.decode('utf_8'), 'type': self.type, 'freq': self.freq, 'room_name': self.room_name, 'status' : self.status})
+    def register(self, payload={}):
+        payload.update({'hostname': self.client_hostname, 'name': self.name.encode('utf_8'), 'type': self.type,
+                        'freq': self.freq, 'room_name': self.room_name, 'status': self.status})
         requested_url = self.server_host + SENSORS_PATH + '/'
-        if (self.server_user == None):
+        if self.server_user is None:
             r = requests.post(requested_url, data=payload)
         else:
             r = requests.post(requested_url, auth=(self.server_user, self.server_password), data=payload)
         text_response = json.loads(r.text)
         try:
-            self.url = str(text_response[u'id'])
+            self.url = str(text_response['id'])
         except:
             # If server registration failed then do nothing more
             return
@@ -40,8 +44,8 @@ class Sensor(Component):
     def update_config_local(self, data):
         # Those data are optionnal
         try:
-            self.last_value = float(data[u'last_temperature'][u'temp'])
-            self.last_value_dt = dateutil.parser.parse(str(data[u'last_temperature'][u'date']))
+            self.last_value = float(data['last_temperature']['temp'])
+            self.last_value_dt = dateutil.parser.parse(str(data['last_temperature']['date']))
         except:
             self.last_value = None
             self.last_value_dt = None
@@ -52,10 +56,11 @@ class Sensor(Component):
         # Upload last data read
         payload = {'sensor': self.url, 'date': self.last_value_dt.isoformat(), 'temp': self.last_value}
         requested_url = self.server_host + TEMPERATURES_PATH + '/'
-        if (self.server_user == None):
+        if self.server_user is None:
             r = requests.post(requested_url, data=payload)
         else:
             r = requests.post(requested_url, auth=(self.server_user, self.server_password), data=payload)
-        if (r.status_code != 201):
-            print("Error during communication with the server. Response : ", r, " - Requested url : ", requested_url, " - Payload : ", payload)
+        if r.status_code != 201:
+            print("Error during communication with the server. Response : ", r, " - Requested url : ",
+                  requested_url, " - Payload : ", payload)
         return

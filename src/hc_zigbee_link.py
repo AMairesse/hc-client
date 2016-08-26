@@ -23,7 +23,7 @@ class Zigbee_link(dict):
         try:
             self.ser = serial.Serial(self.port, self.baud_rate)
         except:
-            print ("Error opening serial port (", port, ")")
+            print("Error opening serial port (", port, ")")
             raise
         # Create a queue to receive message from the network
         self.packets = queue.Queue()
@@ -38,19 +38,19 @@ class Zigbee_link(dict):
 
     # send a command
     def send(self, addr, command, parameter, frame_id):
-        if (parameter == None):
+        if parameter is None:
             self.zb.send('remote_at', command=command, dest_addr_long = addr, frame_id = frame_id)
         else:
             self.zb.send('remote_at', command=command, parameter=parameter, dest_addr_long = addr, frame_id = frame_id)
         nb_try = 4
         # Read responses
-        while (nb_try > 0):
-            if (self.packets.qsize() > 0):
+        while nb_try > 0:
+            if self.packets.qsize() > 0:
                 data = self.packets.get_nowait()
                 # do not care of other packets
-                if ((data['command'] != command) or (data['frame_id'] != frame_id)):
+                if (data['command'] != command) or (data['frame_id'] != frame_id):
                     continue
-                if (data['status'] != b'\x00'):
+                if data['status'] != b'\x00':
                     return False
                 else:
                     return data

@@ -1,7 +1,8 @@
 import ez_setup
+from setuptools import setup, find_packages
+
 ez_setup.use_setuptools()
 
-from setuptools import setup, find_packages
 
 setup(
     name='HC-Client',
@@ -20,7 +21,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Topic :: Utilities",
     ],
-    entry_points = {
+    entry_points={
         'console_scripts': ['hc-client = src.hcclient.py']
     },
     )

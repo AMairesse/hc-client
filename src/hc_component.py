@@ -1,8 +1,9 @@
-import pytz, datetime
+import pytz
+import datetime
 
 # statics
 UNKNOWN_TYPE = 'Unknown'
-DEFAULT_FREQ = 0 # No automatic update by default
+DEFAULT_FREQ = 0  # No automatic update by default
 DEFAULT_TIMEZONE = 'UTC'
 DEFAULT_STATUS = False
 
@@ -27,13 +28,13 @@ class Component(dict):
             
     # Init method uses dict so we can pass any field for creation
     def __init__(self, **kwargs):
-        dict.__init__(self, **kwargs)
+        super(Component, self).__init__(**kwargs)
         self.__dict__ = self
         self.timezone = pytz.timezone(DEFAULT_TIMEZONE)
     
     # Read a component next refresh date
     def refresh_dt(self):
-        if (self.last_value_dt == None):
+        if self.last_value_dt is None:
             return datetime.datetime.now(self.timezone)
         else:
             new_value_dt = self.last_value_dt + datetime.timedelta(seconds=self.freq)
@@ -47,7 +48,8 @@ class Component(dict):
         self.server_password = server_password
 
     # Configure the component
-    def initialize(self):
+    @staticmethod
+    def initialize():
         return True
         
     # Register a new component on the server
@@ -55,6 +57,7 @@ class Component(dict):
         return True
 
     # Update the component
-    def update(self):
+    def update(self, E=None, **F):
+        super(Component, self).update(, E, **F)
         self.last_value_dt = datetime.datetime.now(self.timezone)
         return True

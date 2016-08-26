@@ -23,12 +23,12 @@ class Zigbee_heater(Heater):
 
     # Set heating system to on or off
     def set_heater(self, state):
-        if ((self.zb_link.zb != None) and (self.gpio != None)):
-            if ((self.mode == ACTIVE_LOW) and not(state)):
+        if (self.zb_link.zb is not None) and (self.gpio is not None):
+            if (self.mode == ACTIVE_LOW) and not state:
                 # Heater is on 'active low' which mean than GND wil set it 'on'
                 # Wanted state is OFF so we send a \x05 parameter "Digital output, high"
                 param = b'\x05'
-            elif ((self.mode == ACTIVE_HIGH) and state):
+            elif (self.mode == ACTIVE_HIGH) and state:
                 # Heater is on 'active high' which mean than GND wil set it 'off'
                 # Wanted state is ON so we send a \x05 parameter "Digital output, high"
                 param = b'\x05'
@@ -39,7 +39,7 @@ class Zigbee_heater(Heater):
             gpio_str = 'D' + str(self.gpio)
             response = self.zb_link.send(self.addr, gpio_str.encode("utf_8"), param, b'5')
             # Read responses
-            if (response == False):
+            if response is False:
                 return False
         super(Zigbee_heater, self).set_heater(state)
         return

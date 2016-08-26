@@ -1,5 +1,6 @@
 from hc_sensor import Sensor
 
+
 class enOcean_sensor(Sensor):
     # Public attribute
     addr = None
@@ -12,8 +13,9 @@ class enOcean_sensor(Sensor):
         super(enOcean_sensor, self).__init__(**kwargs)
         return
 
-    def register(self, payload = {}):
-        payload.update({'address': self.addr, 'rorg': self.rorg, 'rorg_func': self.rorg_func, 'rorg_type': self.rorg_type})
+    def register(self, payload={}):
+        payload.update({'address': self.addr, 'rorg': self.rorg,
+                        'rorg_func': self.rorg_func, 'rorg_type': self.rorg_type})
         super(enOcean_sensor, self).register(payload)
         return
 
@@ -21,10 +23,10 @@ class enOcean_sensor(Sensor):
     def update_config_local(self, data):
         # Mandatory parameters
         try:
-            self.addr = int(data[u'address'])
-            self.rorg = int(data[u'rorg'])
-            self.rorg_func = int(data[u'rorg_func'])
-            self.rorg_type = int(data[u'rorg_type'])
+            self.addr = int(data['address'])
+            self.rorg = int(data['rorg'])
+            self.rorg_func = int(data['rorg_func'])
+            self.rorg_type = int(data['rorg_type'])
         except:
             # if there is an error then deactivate the component
             self.addr = None
@@ -33,4 +35,3 @@ class enOcean_sensor(Sensor):
             self.rorg_type = None
         super(enOcean_sensor, self).update_config_local(data)
         return
-

@@ -12,7 +12,7 @@ from hc_components import Components
 
 # statics
 INI_FILE= "/etc/hc-client.conf"
-DEFAULT_HOST= 'http://localhost:8000/hc'
+DEFAULT_HOST= 'http://127.0.0.1:8000/hc'
 DEFAULT_USER= ''
 DEFAULT_PASSWORD= ''
 
@@ -59,6 +59,7 @@ def load_config():
 # -----------------------------------
 #def main():
 try:
+
     # handle SIGTERM signal
     signal.signal(signal.SIGTERM, on_exit)
 
@@ -73,17 +74,22 @@ try:
 
     # Create a components container
     components = Components()
+    print("Components created")
 
     # Create a ZigBee interface
     zb_link = Zigbee_link(zigbee_serial_port, 9600, components.callback_ZB)
+    print("ZB created")
     enOcean_link = enOcean_link(enOcean_serial_port, components.callback_enOcean)
+    print("enOcean created")
 
     # Load components
     components.set_zb_link(zb_link)
     components.set_enOcean_link(enOcean_link)
     components.add_config_server(client_hostname, server_credential['host'], server_credential['user'], server_credential['password'])
     components.initialize()
+    print("Initialize done")
     components.start()
+    print("Process started")
 
     # main loop
     while (components.isAlive()):

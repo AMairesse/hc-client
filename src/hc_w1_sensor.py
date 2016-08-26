@@ -1,5 +1,4 @@
 from hc_sensor import Sensor
-import glob, os
 
 # statics
 W1_BUS_DIRECTORY = "/sys/bus/w1/devices/"
@@ -13,7 +12,7 @@ class W1_sensor(Sensor):
     # Init method uses dict so we can pass any field for creation
     def __init__(self, **kwargs):
         super(W1_sensor, self).__init__(**kwargs)
-        if (self.name != None):
+        if self.name is not None:
             self.set_devicefile()
         return
     
@@ -25,7 +24,7 @@ class W1_sensor(Sensor):
     # Read a sensor value and update data within the object
     def update(self):
         # If no devicefile then do nothing
-        if self.devicefile == None:
+        if self.devicefile is None:
             return False
         try:
             # Open the file representing the sensor and read it

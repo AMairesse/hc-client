@@ -1,5 +1,6 @@
 import dateutil.parser
-import requests, json
+import requests
+import json
 from hc_component import Component
 
 # statics
@@ -9,6 +10,7 @@ ACTIVE_LOW = "Low"
 ACTIVE_HIGH = "High"
 HEATERS_PATH = '/api/heaters'
 HEATERS_HISTORY_PATH = '/api/heaters_history'
+
 
 class Heater(Component):
     # Public attribute
@@ -20,10 +22,10 @@ class Heater(Component):
         return True
 
     # Register a new heater on the server
-    def register(self, payload = {}):
+    def register(self, payload={}):
         payload.update({'hostname': self.client_hostname, 'type': self.type, 'mode': DEFAULT_MODE, 'name': self.name.decode('utf_8'), 'freq': self.freq, 'hysteresis': DEFAULT_HYSTERESIS, 'status' : self.status})
         requested_url = self.server_host + HEATERS_PATH + '/'
-        if (self.server_user == None):
+        if self.server_user is None:
             r = requests.post(requested_url, data=payload)
         else:
             r = requests.post(requested_url, auth=(self.server_user, self.server_password), data=payload)
@@ -35,7 +37,7 @@ class Heater(Component):
     # Read a heater state and update data within the object
     def update(self):
         # Read from server
-        if (self.server_user == None):
+        if self.server_user is None:
             r = requests.get(self.url)
         else:
             r = requests.get(self.url, auth=(self.server_user, self.server_password))
@@ -47,7 +49,7 @@ class Heater(Component):
             super(Heater, self).update()
             return False
         # If state has not changed then no update to upload
-        if (self.last_value == new_value):
+        if self.last_value == new_value:
             updated = False
         else:
             updated = True
@@ -85,8 +87,8 @@ class Heater(Component):
         # Upload last data read
         payload = {'heater': self.url, 'date': self.last_value_dt.isoformat(), 'state': self.last_value}
         requested_url = self.server_host + HEATERS_HISTORY_PATH + '/'
-        if (self.server_user == None):
-            r = requests.post(requested_url, data=payload)
+        if self.server_user is None:
+            _ = requests.post(requested_url, data=payload)
         else:
-            r = requests.post(requested_url, auth=(self.server_user, self.server_password), data=payload)
+            _ = requests.post(requested_url, auth=(self.server_user, self.server_password), data=payload)
         return
