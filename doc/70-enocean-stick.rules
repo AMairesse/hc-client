@@ -1,0 +1,2 @@
+SUBSYSTEM=="tty", ATTRS{interface}=="EnOcean USB 300 DB", SYMLINK+="ttyUSB-enOcean"
+SUBSYSTEM=="tty", ATTRS{interface}=="FT232R USB UART", SYMLINK+="ttyUSB-XBee"
